@@ -18,7 +18,8 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".ThirdActivity"></activity>
+        <activity android:name=".ThirdActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar"></activity>
 
     </application>
 

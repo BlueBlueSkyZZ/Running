@@ -119,7 +119,6 @@ public class MainActivity extends AppCompatActivity {
             contentInt = Integer.parseInt(content);
 
             if(contentInt % 10 == 0){
-
                 uihandler.sendEmptyMessage(1);
             }
             Log.d("ResponseThread", "执行子线程 ");
