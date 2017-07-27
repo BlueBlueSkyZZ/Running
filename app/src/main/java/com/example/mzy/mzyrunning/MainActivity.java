@@ -98,7 +98,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 final String result = response.body().string();
-
                 Log.d("response", "onResponse() returned: " +  result);
                 ResponseThread responseThread = new ResponseThread(result);
                 responseThread.start();
@@ -117,7 +116,6 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
             super.run();
             contentInt = Integer.parseInt(content);
-
             if(contentInt % 10 == 0){
                 uihandler.sendEmptyMessage(1);
             }

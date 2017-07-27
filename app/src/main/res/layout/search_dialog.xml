@@ -14,22 +14,15 @@
         android:layout_gravity="center_horizontal"
         android:src="@drawable/loadanim" />
 
-    <ImageView
-        android:id="@+id/close_anim"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignEnd="@+id/search_anim"
-        android:layout_alignTop="@+id/search_anim"
-        android:src="@drawable/bottle_close_frame_highlight"
-        android:theme="@android:style/Theme.Translucent" />
-    <!--
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="正在寻找有缘人"
-        android:layout_alignBottom="@+id/search_anim"
+        android:text="正在寻找有缘人，轻触屏幕退出"
+        android:layout_alignTop="@+id/search_anim"
         android:layout_centerHorizontal="true"
-        />-->
+        android:textColor="#ffffff"
+        />
     <!--不支持中文-->
     <com.roger.match.library.MatchTextView
         android:layout_width="wrap_content"

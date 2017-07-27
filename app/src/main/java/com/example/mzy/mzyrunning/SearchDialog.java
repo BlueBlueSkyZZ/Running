@@ -48,7 +48,7 @@ public class SearchDialog extends ProgressDialog {
     private void init(){
 
         anim = (ImageView) findViewById(R.id.search_anim);
-        close = (ImageView) findViewById(R.id.close_anim);
+      //  close = (ImageView) findViewById(R.id.close_anim);
         // anim.setImageResource(R.drawable.loadanim);
         anim.setImageResource(R.drawable.loadanim);
         final AnimationDrawable animationDrawable = (AnimationDrawable) anim.getDrawable();
