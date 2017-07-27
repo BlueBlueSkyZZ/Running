@@ -10,11 +10,16 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -34,23 +39,51 @@ public class MainActivity extends AppCompatActivity {
         mContext = MainActivity.this;
     }
 
+    /**
+     * 按钮触发效果
+     * @param view
+     */
+    public void start(View view){
 
+        show_anim(view);
+        uihandler.postDelayed(runnable, 2000);
+//        postGetID("", "", "", "", "", postGetIDUrl);
+    }
+
+    /**
+     * msg.what
+     * 1 测试用例
+     * 2 为匹配序列号线程发送
+     * 3 匹配成功停止线程
+     */
     Handler uihandler=new Handler(){
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
             switch (msg.what){
                 case 1:
+                    //测试用线程
                     Log.d("uihandler", "handleMessage: 匹配成功");
                     uihandler.removeCallbacks(runnable);
                     searchDialog.cancel();
                     Intent intent = new Intent(mContext, ThirdActivity.class);
                     mContext.startActivity(intent);
                     break;
+                case 2:
+                    uihandler.postDelayed(getObjectRunnable, 2000);
+                    //postGetObject();
+                    break;
+                case 3:
+                    uihandler.removeCallbacks(getObjectRunnable);
+                    searchDialog.cancel();
+                    Intent intent2 = new Intent(mContext, ThirdActivity.class);
+                    mContext.startActivity(intent2);
+                    break;
             }
         }
     };
 
+    //测试用线程
     Runnable runnable=new Runnable() {
         @Override
         public void run() {
@@ -61,15 +94,24 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    /**
+     * 重复调用postGetObject方法
+     */
+    Runnable getObjectRunnable = new Runnable() {
+        @Override
+        public void run() {
+            postGetObject(myMatchInt, postGetObjectUrl);
+            //uihandler.postDelayed(this, 2000);
+        }
+    };
 
-    public void start(View view){
-
-        show_anim(view);
-        uihandler.postDelayed(runnable, 2000);
-
-    }
 
 
+
+    /**
+     * 帧动画通过dialog启动
+     * @param view
+     */
     public void show_anim(View view){
         searchDialog = new SearchDialog(MainActivity.this, uihandler, runnable);
         //设置背景透明
@@ -77,6 +119,7 @@ public class MainActivity extends AppCompatActivity {
         searchDialog.show();
     }
 
+    //原测试服务器
     private String url = "http://192.168.43.25:8888/";
 
     public void httpGet(){
@@ -121,5 +164,153 @@ public class MainActivity extends AppCompatActivity {
             }
             Log.d("ResponseThread", "执行子线程 ");
         }
+    }
+
+    private String postGetIDUrl = "";
+    int count = 0;//计数器当服务器忙碌时停止调用
+    String myMatchInt;//存储匹配序列号
+    /**
+     * 用户获取匹配ID的方法，向服务器请求，三次失败则停止请求
+     * @param userName 用户的姓名
+     * @param userAge 用户年龄
+     * @param userSex 用户性别
+     * @param targetAge 目标年龄
+     * @param targetSex 目标性别
+     * @param postGetIDUrl 服务器地址
+     * response:失败false
+     *          成功得到匹配序列号matchId
+     */
+    public void postGetID(final String userName, final String userAge, final String userSex, final String targetAge,
+                          final String targetSex, final String postGetIDUrl){
+        OkHttpClient client = new OkHttpClient();
+        FormBody formBody = new FormBody.Builder()
+                .add("UserName", userName)
+                .add("UserEge", userAge)
+                .add("UserSex", userSex)
+                .add("TargetEge", targetAge)
+                .add("TargetSex", targetSex)
+                .build();
+        Request request = new Request.Builder()
+                .url(postGetIDUrl)
+                .post(formBody)
+                .build();
+        Call call = client.newCall(request);
+        call.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                Log.d("postGetID", "onFailure:回调失败 ");
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                final String result = response.body().string();
+                Log.d("postGetID", "onResponse() returned: " +  result);
+                if(result != "false" && result != null){
+                    //获取到匹配ID
+                    String matchId = result;
+                    int matchIdInt = Integer.parseInt(matchId);
+                    myMatchInt =  matchIdInt + "";//int转String
+                    //利用子线程向主线程发送数据
+                    threadGetID threadGetID = new threadGetID(matchIdInt);
+                    threadGetID.start();
+                }else{
+                    //超过三次请求失败停止请求
+                    if(count <= 3){
+                        count++;
+                        postGetID(userName,userAge,userSex,targetAge,targetSex,postGetIDUrl);
+                    }else{
+                        count = 0;
+                        Toast.makeText(MainActivity.this, "服务器出了点小问题，请稍后再试", Toast.LENGTH_SHORT).show();
+                        searchDialog.cancel();
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * GetID方法线程，发送标志位msg.what=2 arg1 = matchId
+     */
+    class threadGetID extends Thread{
+        private int matchIdInt;
+
+        public threadGetID(int matchIdInt){
+            this.matchIdInt = matchIdInt;
+        }
+
+        @Override
+        public void run() {
+            super.run();
+//            Message message = uihandler.obtainMessage();
+//            message.arg1 = matchIdInt;
+//            message.what = 2;
+//            uihandler.sendMessage(message);
+            uihandler.sendEmptyMessage(2);
+        }
+    }
+
+
+    private String postGetObjectUrl = "";
+
+    /**
+     * 用户获取匹配序列号后，定时向服务器进行请求匹配
+     * @param matchId 匹配序列号
+     * @param postGetObjectUrl 服务器地址
+     * response：失败wait
+     *           成功（JSON）Channel 房间号
+     *                       IsCreateChannel 用户是否需要创建房间（0加入房间，1创建房间）
+     */
+    public void postGetObject(String matchId, String postGetObjectUrl){
+        OkHttpClient client = new OkHttpClient();
+        FormBody formBody = new FormBody.Builder()
+                .add("ID", matchId)
+                .build();
+        Request request = new Request.Builder()
+                .url(postGetObjectUrl)
+                .post(formBody)
+                .build();
+        Call call = client.newCall(request);
+        call.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                Log.d("postGetObject", "onFailure:回调失败 ");
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                final String result = response.body().string();
+                Log.d("postGetObject", "onResponse() returned: " +  result);
+                if(result == "wait" || result == null){
+                    //继续轮询
+                    uihandler.sendEmptyMessage(2);
+                    return;
+                }
+                try {
+                    JSONObject jsonObject = new JSONObject(result);
+                    String channelId = jsonObject.getString("Channel");
+                    String isCreateChannel = jsonObject.getString("IsCreateChannel");
+                    Log.d("postGetObject", "channelId: " + channelId + ",isCreateChannel:" + isCreateChannel);
+
+                    if(isCreateChannel == "0"){
+                        joinChannel();
+                    }else if(isCreateChannel == "1"){
+                        createChannel();
+                    }
+
+                    uihandler.sendEmptyMessage(3);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        });
+    }
+
+    public void joinChannel(){
+
+    }
+
+    public void createChannel(){
+
     }
 }
