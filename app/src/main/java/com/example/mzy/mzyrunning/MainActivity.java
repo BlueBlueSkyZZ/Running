@@ -10,6 +10,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import org.json.JSONException;
@@ -29,6 +30,18 @@ public class MainActivity extends AppCompatActivity {
     private Button bt1;
     private Context mContext;
 
+    private EditText ed1;
+    private EditText ed2;
+    private EditText ed3;
+    private EditText ed4;
+    private EditText ed5;
+
+    private String name;
+    private String userAge;
+    private String userSex;
+    private String targetAge;
+    private String targetSex;
+
     SearchDialog searchDialog ;
 
     @Override
@@ -37,6 +50,14 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         bt1 = (Button) findViewById(R.id.button);
         mContext = MainActivity.this;
+
+        ed1 = (EditText) findViewById(R.id.editText);
+        ed2 = (EditText) findViewById(R.id.editText2);
+        ed3 = (EditText) findViewById(R.id.editText3);
+        ed4 = (EditText) findViewById(R.id.editText4);
+        ed5 = (EditText) findViewById(R.id.editText5);
+
+
     }
 
     /**
@@ -46,6 +67,11 @@ public class MainActivity extends AppCompatActivity {
     public void start(View view){
 
         show_anim(view);
+        name = ed1.getText().toString();
+        userAge = ed2.getText().toString();
+        userSex = ed3.getText().toString();
+        targetAge = ed4.getText().toString();
+        targetSex = ed5.getText().toString();
         uihandler.postDelayed(runnable, 2000);
 //        postGetID("", "", "", "", "", postGetIDUrl);
     }
@@ -89,7 +115,8 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
             // TODO Auto-generated method stub
             //要做的事情
-            httpGet();
+            //httpGet();
+            postGetID(name, userAge, userSex, targetAge, targetSex, postGetIDUrl);
             uihandler.postDelayed(this, 2000);
         }
     };
@@ -106,14 +133,13 @@ public class MainActivity extends AppCompatActivity {
     };
 
 
-
-
     /**
      * 帧动画通过dialog启动
      * @param view
      */
     public void show_anim(View view){
-        searchDialog = new SearchDialog(MainActivity.this, uihandler, runnable);
+
+        searchDialog = new SearchDialog(MainActivity.this, uihandler, getObjectRunnable, runnable);
         //设置背景透明
         searchDialog.getWindow().setBackgroundDrawable(new ColorDrawable());
         searchDialog.show();
@@ -166,7 +192,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private String postGetIDUrl = "";
+    private String IPv4 = "http://192.168.43.25:8888/";
+
+    private String postGetIDUrl = IPv4 + "web02/servlet/CreateRecordServlet";
     int count = 0;//计数器当服务器忙碌时停止调用
     String myMatchInt;//存储匹配序列号
     /**
@@ -199,21 +227,33 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call call, IOException e) {
                 Log.d("postGetID", "onFailure:回调失败 ");
+                count++;
+                if(count >= 3){
+                    uihandler.removeCallbacks(runnable);
+                    searchDialog.cancel();
+                    count = 0;
+                }
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 final String result = response.body().string();
                 Log.d("postGetID", "onResponse() returned: " +  result);
-                if(result != "false" && result != null){
+                if(!result.equals("false") && result != null){
                     //获取到匹配ID
                     String matchId = result;
-                    int matchIdInt = Integer.parseInt(matchId);
-                    myMatchInt =  matchIdInt + "";//int转String
+                    Log.d("postGetID", "matchId is" + matchId);
+                    myMatchInt =  result;
+                    //移除回调线程
+                    uihandler.removeCallbacks(runnable);
+
                     //利用子线程向主线程发送数据
-                    threadGetID threadGetID = new threadGetID(matchIdInt);
+                    threadGetID threadGetID = new threadGetID();
                     threadGetID.start();
+
+
                 }else{
+                    Log.d("postGetID", "count: " + count);
                     //超过三次请求失败停止请求
                     if(count <= 3){
                         count++;
@@ -222,6 +262,7 @@ public class MainActivity extends AppCompatActivity {
                         count = 0;
                         Toast.makeText(MainActivity.this, "服务器出了点小问题，请稍后再试", Toast.LENGTH_SHORT).show();
                         searchDialog.cancel();
+                        uihandler.removeCallbacks(runnable);
                     }
                 }
             }
@@ -232,10 +273,9 @@ public class MainActivity extends AppCompatActivity {
      * GetID方法线程，发送标志位msg.what=2 arg1 = matchId
      */
     class threadGetID extends Thread{
-        private int matchIdInt;
 
-        public threadGetID(int matchIdInt){
-            this.matchIdInt = matchIdInt;
+        public threadGetID(){
+
         }
 
         @Override
@@ -250,7 +290,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private String postGetObjectUrl = "";
+    private String postGetObjectUrl = IPv4 + "web02/servlet/MatchingServlet";
 
     /**
      * 用户获取匹配序列号后，定时向服务器进行请求匹配
@@ -263,7 +303,7 @@ public class MainActivity extends AppCompatActivity {
     public void postGetObject(String matchId, String postGetObjectUrl){
         OkHttpClient client = new OkHttpClient();
         FormBody formBody = new FormBody.Builder()
-                .add("ID", matchId)
+                .add("UsrID", matchId)
                 .build();
         Request request = new Request.Builder()
                 .url(postGetObjectUrl)
@@ -280,7 +320,7 @@ public class MainActivity extends AppCompatActivity {
             public void onResponse(Call call, Response response) throws IOException {
                 final String result = response.body().string();
                 Log.d("postGetObject", "onResponse() returned: " +  result);
-                if(result == "wait" || result == null){
+                if(result.equals("false") || result.equals("wait") ||result == null){
                     //继续轮询
                     uihandler.sendEmptyMessage(2);
                     return;
@@ -291,9 +331,9 @@ public class MainActivity extends AppCompatActivity {
                     String isCreateChannel = jsonObject.getString("IsCreateChannel");
                     Log.d("postGetObject", "channelId: " + channelId + ",isCreateChannel:" + isCreateChannel);
 
-                    if(isCreateChannel == "0"){
+                    if(isCreateChannel.equals("0")){
                         joinChannel();
-                    }else if(isCreateChannel == "1"){
+                    }else if(isCreateChannel.equals("1")){
                         createChannel();
                     }
 

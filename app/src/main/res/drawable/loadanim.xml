@@ -3,12 +3,12 @@
     android:oneshot="false" android:visible="false">
 
     <item
-        android:drawable="@drawable/progress_loading_image_three_01"
+        android:drawable="@drawable/final_001"
         android:duration="100"
     />
 
     <item
-        android:drawable="@drawable/progress_loading_image_three_02"
+        android:drawable="@drawable/final_002"
         android:duration="100" />
 
 </animation-list>

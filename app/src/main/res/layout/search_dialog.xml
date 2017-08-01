@@ -18,7 +18,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="正在寻找有缘人，轻触屏幕退出"
+        android:text="正在寻找有缘人，轻触屏幕空白区域退出"
         android:layout_alignTop="@+id/search_anim"
         android:layout_centerHorizontal="true"
         android:textColor="#ffffff"

@@ -21,9 +21,9 @@ public class SearchDialog extends ProgressDialog {
      * 设置弹窗属性
      * @param context 上下文
      * @param handler
-     * @param runnable 控制传入线程的中断
+     * @param runnable 控制传入线程的中断..这里写的不大友好，有时间就改进吧
      */
-    public SearchDialog(Context context, final Handler handler, final Runnable runnable) {
+    public SearchDialog(Context context, final Handler handler, final Runnable runnable, final Runnable runnnable2) {
         super(context);
         setCanceledOnTouchOutside(true);
         //取消则停止线程调用
@@ -32,6 +32,7 @@ public class SearchDialog extends ProgressDialog {
             public void onCancel(DialogInterface dialog) {
                 Log.d("dialog", "onCancel: 调用了移除方法");
                 handler.removeCallbacks(runnable);
+                handler.removeCallbacks(runnnable2);
             }
         });
     }
@@ -63,6 +64,9 @@ public class SearchDialog extends ProgressDialog {
 
     }
 
+    public void stopHandler(Handler handler, Runnable runnable){
+
+    }
 
 
 }
